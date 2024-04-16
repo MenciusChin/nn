@@ -1,11 +1,9 @@
 """
-Activation functions and its derivatives
+Activation functions and its derivatives.
 """
 
 import numpy as np
 
-
-# activation function and its derivative
 def tanh(x):
     return np.tanh(x)
 
