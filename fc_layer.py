@@ -1,5 +1,5 @@
 """
-Fully-connected layer
+Fully-connected layer.
 """
 
 import math
@@ -8,7 +8,7 @@ from layer import Layer
 
 
 # inherit from base class Layer
-class FClayer(Layer):
+class FCLayer(Layer):
     # input_size = number of input neurons
     # output_size = number of output neurons
     def __init__(self, input_size, output_size, bias=True):
@@ -23,7 +23,7 @@ class FClayer(Layer):
         return self.output
 
     # computes dE/dW, dE/dB for a given output_error=dE/dY. Returns input_error=dE/dX.
-    def backward_propagation(self, output_error, learning_rate):
+    def backward(self, output_error, learning_rate):
         # dE/dX = dE/dY * W^T
         input_error = np.dot(output_error, self.weights.T)
         weights_error = np.dot(self.input.T, output_error)
