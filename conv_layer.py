@@ -33,14 +33,15 @@ class Conv(Layer):
         ### Implement bias ###
     
 
-    def pad(self, data, padding):
+    def pad(self, data):
         """
         Helper function to add padding before convolution
         """
-        data = np.insert(data, [data.shape()[1]], [0 for p in range(padding)], axis=1)
-        data = np.insert(data, [0], [0 for p in range(padding)], axis=1)
-        data = np.insert(data, [data.shape()[0]], [0 for p in range(padding)], axis=0)
-        data = np.insert(data, [0], [0 for p in range(padding)], axis=0)
+        ### Look up online to optimize ###
+        data = np.insert(data, [data.shape()[1]], [0 for p in range(self.padding)], axis=1)
+        data = np.insert(data, [0], [0 for p in range(self.padding)], axis=1)
+        data = np.insert(data, [data.shape()[0]], [0 for p in range(self.padding)], axis=0)
+        data = np.insert(data, [0], [0 for p in range(self.padding)], axis=0)
         return data
 
 
@@ -51,8 +52,14 @@ class Conv(Layer):
         Hand-select data and filter to be process.
         Take padding, dilation into consideration.
         """
-        in_H, in_W = data.shape()
 
+        # pad data if needed
+        if self.padding > 0:
+            data = self.pad(data)
+
+        in_H, in_W = data.shape()
+        f_H, f_W = filter.shape()
+        
 
 
 
