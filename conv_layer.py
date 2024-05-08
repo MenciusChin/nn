@@ -4,6 +4,9 @@ Convolution layers
 
 import numpy as np
 from layer import Layer
+import multiprocessing as mp
+# This is for windows
+from multiprocessing.pool import ThreadPool as Pool
 
 
 class Conv(Layer):
@@ -47,42 +50,46 @@ class Conv(Layer):
         return data
 
 
+    def mult(
+            self,
+            data, 
+            filter,
+            r,
+            c,
+            out_r, 
+            out_c
+    ):
+        """
+        Helper function for 1 mult-operation in convolve.
+        """
+
+        data_r = out_r * self.stride + r * self.dilation
+        data_c = out_c * self.stride + c * self.dilation
+        return filter[r, c] * data[data_r, data_c]
+
+
     def convolve(
             self, 
             data, 
             filter,
-            stride,
-            dilation,
             out_r, 
             out_c
     ):
         """
         This is the function calculating 1 convolution process.
         """
-
-        def mult(
-            data, 
-            filter,
-            r,
-            c,
-            stride,
-            dilation,
-            out_r, 
-            out_c
-        ):
-            """
-            Helper function for 1 mult-operation in convolve.
-            """
-            data_r = out_r * stride + r * dilation
-            data_c = out_c * stride + c * dilation
-            return filter[r, c] * data[data_r, data_c]
         
         f_H, f_W = filter.shape
-        output = []
+        input = []
         
         for r in range(f_H):
             for c in range(f_W):
-                output.append(mult(data, filter, r, c, stride, dilation, out_r, out_c))
+                input.append((data, filter, r, c, out_r, out_c))
+        
+        with Pool(mp.cpu_count()) as p:
+            output = p.starmap(self.mult, input)
+            p.terminate()
+            p.join()
 
         return sum(output)
     
@@ -104,14 +111,20 @@ class Conv(Layer):
         f_H, f_W = filter.shape
         out_H = int((in_H + 2 * self.padding - self.dilation * (f_H - 1) - 1) / self.stride + 1)
         out_W = int((in_W + 2 * self.padding - self.dilation * (f_W - 1) - 1) / self.stride + 1)
-        out_data = np.empty([out_H, out_W])
+        input = []
 
         for r in range(0, out_H):
             for c in range(0, out_W):
-                out_data[r, c] = self.convolve(data=data, filter=filter, stride=self.stride, 
-                                               dilation=self.dilation, out_r=r, out_c=c)
+                input.append((data, filter, r, c))
         
-        return out_data
+        with Pool(mp.cpu_count()) as p:
+            out_data = p.starmap(self.convolve, input)
+            p.terminate()
+            p.join()
+        
+        out_data = np.array(out_data)
+
+        return np.reshape(out_data, [out_H, out_W])
 
 
 if __name__ == "__main__":
