@@ -94,7 +94,6 @@ class Conv(Layer):
         return sum(output)
     
 
-
     def conv1to1(self, data, filter):
         """
         This is the function calculating 1 unit data to 1 filter,
@@ -125,6 +124,35 @@ class Conv(Layer):
         out_data = np.array(out_data)
 
         return np.reshape(out_data, [out_H, out_W])
+    
+
+    def convntom(self, data):
+        """
+        This is the function calculating convolution for 
+        n input channels to m output channels.
+        The input data shape is expected as: 
+        (1, in_channel, in_H, in_W)
+        The filters shape is expected as:
+        (in_channel, out_channel, f_H, f_W)
+        """
+
+        input = []
+        in_channels, out_channels = self.filters.shape[0], self.filters.shape[1]
+
+        for oc in range(out_channels):
+            for ic in range(in_channels):
+                input.append((data[0, ic], self.filters[ic, oc]))
+        
+        with Pool(mp.cpu_count()) as p:
+            out_data = p.starmap(self.conv1to1, input)
+            p.terminate()
+            p.join()
+        
+        out_data = np.sum(np.reshape(np.array(out_data), [out_channels, in_channels]), axis=1)
+        
+        return np.expand_dims(out_data, axis=0)
+
+
 
 
 if __name__ == "__main__":
