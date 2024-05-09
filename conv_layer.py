@@ -35,6 +35,17 @@ class Conv(Layer):
         self.groups = groups
         
         ### Implement bias ###
+
+
+    def forward(self, input):
+        """
+        Forward pass of the Convolution layer,
+        expected input shape:
+        (1, in_channel, in_H, in_W)
+        """
+        self.input = input
+        self.output = self.convntom(input)
+        return self.output
     
 
     def pad(self, data):
