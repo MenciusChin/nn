@@ -134,6 +134,8 @@ class Conv(Layer):
         (1, in_channel, in_H, in_W)
         The filters shape is expected as:
         (in_channel, out_channel, f_H, f_W)
+        The output shape is expected as:
+        (1, out_channel, out_H, out_W)
         """
 
         input = []
@@ -148,23 +150,21 @@ class Conv(Layer):
             p.terminate()
             p.join()
         
-        out_data = np.sum(np.reshape(np.array(out_data), [out_channels, in_channels]), axis=1)
+        out_H, out_W = out_data[0].shape[0], out_data[0].shape[1]
+        # sum up result from in_channels to one combined result
+        out_data = np.sum(np.reshape(np.array(out_data), 
+                                     [out_channels, in_channels, out_H, out_W]), axis=1)
         
         return np.expand_dims(out_data, axis=0)
 
 
-
-
 if __name__ == "__main__":
-
     # Testing
-    data = np.ones([5, 5])
-    filter = np.array([[1, 2, 3],
-                       [4, 5, 6],
-                       [7, 8, 9]])
-    
-    conv = Conv(1, 1, 3)
-    print(conv.conv1to1(data, filter))
+    data = np.random.randn(1, 3, 7, 7)
+    conv = Conv(3, 4, 3)
+    print(conv.filters)
+    (res := conv.convntom(data=data))
+    print(res.shape)
     
 
 
