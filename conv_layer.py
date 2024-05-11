@@ -19,7 +19,7 @@ class Conv(Layer):
             padding=0,
             dilation=1,
             groups=1,
-            bias=None
+            bias=False
     ) -> None:
         
         if isinstance(kernel_size, int):
@@ -44,9 +44,22 @@ class Conv(Layer):
         (1, in_channel, in_H, in_W)
         """
         self.input = input
-        self.output = self.convntom(input)
+        self.output = self.convntom(input, self.filters)
         return self.output
     
+
+    def backward(self, output_error, learning_rate):
+        """
+        Back propagation for the Convolution layer,
+        for every element of filter F:
+        dL/dFi = sum(dL/dOk * dOk/dFi) -> dL/dF = X (input) @ dL/dO (output_error)
+        The expected shape of output_error would be:
+        (1, out_channel, out_H, out_W) same as the shape if out_data
+        """
+
+
+
+
 
     def pad(self, data):
         """
@@ -137,7 +150,7 @@ class Conv(Layer):
         return np.reshape(out_data, [out_H, out_W])
     
 
-    def convntom(self, data):
+    def convntom(self, data, filters):
         """
         This is the function calculating convolution for 
         n input channels to m output channels.
@@ -150,11 +163,11 @@ class Conv(Layer):
         """
 
         input = []
-        in_channels, out_channels = self.filters.shape[0], self.filters.shape[1]
+        in_channels, out_channels = filters.shape[0], filters.shape[1]
 
         for oc in range(out_channels):
             for ic in range(in_channels):
-                input.append((data[0, ic], self.filters[ic, oc]))
+                input.append((data[0, ic], filters[ic, oc]))
         
         with Pool(mp.cpu_count()) as p:
             out_data = p.starmap(self.conv1to1, input)
@@ -173,9 +186,9 @@ if __name__ == "__main__":
     # Testing
     data = np.random.randn(1, 3, 7, 7)
     conv = Conv(3, 4, 3)
-    print(conv.filters)
-    (res := conv.convntom(data=data))
-    print(res.shape)
+
+    (res := conv.forward(data))
+    print(res.shape, "peepeepoopoo")
     
 
 
