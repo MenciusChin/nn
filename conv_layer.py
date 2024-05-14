@@ -51,11 +51,41 @@ class Conv(Layer):
     def backward(self, output_error, learning_rate):
         """
         Back propagation for the Convolution layer,
-        for every element of filter F:
+        for every element of filter F, output O:
         dL/dFi = sum(dL/dOk * dOk/dFi) -> dL/dF = X (input) @ dL/dO (output_error)
         The expected shape of output_error would be:
         (1, out_channel, out_H, out_W) same as the shape if out_data
         """
+        
+        # get filter gradient
+        filter_input = []
+        in_channel, out_channel = self.filters.shape[0], self.filters.shape[1]
+
+        for ic in range(in_channel):
+            for oc in range(out_channel):
+                filter_input.append((input[0, ic], output_error[0, oc]))
+
+        with Pool(mp.cpu_count()) as p:
+            filter_error = p.starmap(self.conv1to1, filter_input)
+            p.terminate()
+            p.join()
+        
+        filter_error = np.reshape(
+            np.array(filter_error),
+            [in_channel, out_channel, self.filters.shape[2], self.filters.shape[3]]
+        )
+
+        # update filter gradient
+        self.filters -= learning_rate * filter_error
+
+        # get input gradient
+        
+
+        
+
+            
+        
+
 
 
 
@@ -188,7 +218,8 @@ if __name__ == "__main__":
     conv = Conv(3, 4, 3)
 
     (res := conv.forward(data))
-    print(res.shape, "peepeepoopoo")
+    print(res.shape)
+    print(res)
     
 
 
