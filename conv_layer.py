@@ -44,7 +44,13 @@ class Conv(Layer):
         (1, in_channel, in_H, in_W)
         """
         self.input = input
-        self.output = self.convntom(input, self.filters)
+        self.output = self.convntom(
+            input,
+            self.filters,
+            self.padding,
+            self.dilation,
+            self.stride
+        )
         return self.output
     
 
@@ -79,7 +85,7 @@ class Conv(Layer):
         self.filters -= learning_rate * filter_error
 
         # get input gradient
-        
+
 
         
 
@@ -91,15 +97,15 @@ class Conv(Layer):
 
 
 
-    def pad(self, data):
+    def pad(self, data, padding):
         """
         Helper function to add padding before convolution
         """
         ### Look up online to optimize ###
-        data = np.insert(data, [data.shape()[1]], [0 for p in range(self.padding)], axis=1)
-        data = np.insert(data, [0], [0 for p in range(self.padding)], axis=1)
-        data = np.insert(data, [data.shape()[0]], [0 for p in range(self.padding)], axis=0)
-        data = np.insert(data, [0], [0 for p in range(self.padding)], axis=0)
+        data = np.insert(data, [data.shape()[1]], [0 for p in range(padding)], axis=1)
+        data = np.insert(data, [0], [0 for p in range(padding)], axis=1)
+        data = np.insert(data, [data.shape()[0]], [0 for p in range(padding)], axis=0)
+        data = np.insert(data, [0], [0 for p in range(padding)], axis=0)
 
         return data
 
@@ -148,7 +154,14 @@ class Conv(Layer):
         return sum(output)
     
 
-    def conv1to1(self, data, filter):
+    def conv1to1(
+            self, 
+            data, 
+            filter,
+            padding,
+            dilation,
+            stride
+    ):
         """
         This is the function calculating 1 unit data to 1 filter,
         for later integration into convNtoM.
@@ -157,13 +170,13 @@ class Conv(Layer):
         """
 
         # pad data if needed
-        if self.padding > 0:
-            data = self.pad(data)
+        if padding > 0:
+            data = self.pad(data, padding)
 
         in_H, in_W = data.shape
         f_H, f_W = filter.shape
-        out_H = int((in_H + 2 * self.padding - self.dilation * (f_H - 1) - 1) / self.stride + 1)
-        out_W = int((in_W + 2 * self.padding - self.dilation * (f_W - 1) - 1) / self.stride + 1)
+        out_H = int((in_H + 2 * padding - dilation * (f_H - 1) - 1) / stride + 1)
+        out_W = int((in_W + 2 * padding - dilation * (f_W - 1) - 1) / stride + 1)
         input = []
 
         for r in range(0, out_H):
@@ -180,7 +193,14 @@ class Conv(Layer):
         return np.reshape(out_data, [out_H, out_W])
     
 
-    def convntom(self, data, filters):
+    def convntom(
+            self, 
+            data, 
+            filters,
+            padding,
+            dilation,
+            stride
+    ):
         """
         This is the function calculating convolution for 
         n input channels to m output channels.
@@ -197,7 +217,13 @@ class Conv(Layer):
 
         for oc in range(out_channels):
             for ic in range(in_channels):
-                input.append((data[0, ic], filters[ic, oc]))
+                input.append((
+                    data[0, ic], 
+                    filters[ic, oc],
+                    padding,
+                    dilation,
+                    stride
+                ))
         
         with Pool(mp.cpu_count()) as p:
             out_data = p.starmap(self.conv1to1, input)
