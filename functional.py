@@ -227,10 +227,10 @@ def pool(
 
     if method == "max":
         pool_index = np.unravel_index(np.argmax(pool_area, axis=None), pool_area.shape)
-        return np.max(pool_area), (pool_index[0] + out_r * stride[0], pool_index[1] + out_c * stride[1])
+        return np.max(pool_area), [pool_index[0] + out_r * stride[0], pool_index[1] + out_c * stride[1]]
     elif method == "min":
         pool_index = np.unravel_index(np.argmin(pool_area, axis=None), pool_area.shape)
-        return np.min(pool_area), (pool_index[0] + out_r * stride[0], pool_index[1] + out_c * stride[1])
+        return np.min(pool_area), [pool_index[0] + out_r * stride[0], pool_index[1] + out_c * stride[1]]
     elif method == "avg":
         ### implement pool index for mean pool
         return np.mean(pool_area)
@@ -278,7 +278,7 @@ def pool1to1(
     
     pool_result, pool_index = [pool_zip for pool_zip in zip(*out_data)]
     
-    return np.reshape(np.array(pool_result), [out_H, out_W]), (pool_index)
+    return np.reshape(np.array(pool_result), [out_H, out_W]), pool_index
 
 
 def poolnto1(
@@ -317,6 +317,5 @@ def poolnto1(
         p.join()
     
     pool_result, pool_index = [pool_zip for pool_zip in zip(*out_data)]
-    print(pool_index)
     
     return np.expand_dims(np.array(pool_result), axis=0), np.array(pool_index)

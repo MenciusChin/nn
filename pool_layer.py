@@ -41,6 +41,8 @@ class Pool(Layer):
         (1, channel, in_H, in_W)
         Expected output shape:
         (1, channel, out_H, out_W)
+        Expected index shape:
+        (channel, out_H * out_W, 2)
         """
 
         self.input = input
@@ -52,7 +54,7 @@ class Pool(Layer):
         return pool_result
 
 
-    def backward(self, output_error, learning_rate):
+    def backward(self, output_error, learning_rate=None):
         """
         Back propagation for the Pooling layer,
         Expected shape of output_error:
@@ -62,25 +64,26 @@ class Pool(Layer):
         All non-pooled index gradient is 0
         """
 
+        _, channels, out_H, out_W = output_error.shape
+        # init input_error for min/max pooling 
+        input_error = np.zeros(self.input.shape)
+        print(self.pool_index.shape)
 
+        for c in range(channels):
+            for row in range(out_H):
+                for col in range(out_W):
+                    row_index, col_index = self.pool_index[c, row * out_H + col]
+                    input_error[0, c, row_index, col_index] = output_error[0, c, row, col] 
 
-        return
-        
-
-
-
-
-
-
+        return input_error
 
 
 if __name__ == "__main__":
     # testing code
     data = np.random.randn(1, 3, 4, 4)
-    print("Original data")
-    print(data)
     maxpool = Pool(kernel_size=(2, 2)) 
 
     pool_result = maxpool.forward(data)
-    print("\nPool result")
-    print(pool_result)
+    fake_error = pool_result
+    fake_gradient = maxpool.backward(fake_error)
+    print(fake_gradient)
