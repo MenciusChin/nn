@@ -35,6 +35,7 @@ class Conv(Layer):
         self.groups = groups
         
         ### Implement bias ###
+        self.bias = True if bias else False
 
 
     def forward(self, input):
@@ -43,6 +44,7 @@ class Conv(Layer):
         expected input shape:
         (1, in_channel, in_H, in_W)
         """
+
         self.input = input
         self.output = self.convntom(
             input,
@@ -51,7 +53,14 @@ class Conv(Layer):
             self.dilation,
             self.stride
         )
-        return self.output
+
+        # initialize bias at the very first forward pass 
+        if self.bias is True:
+            self.bias = np.random.randn(1, self.output.shape[1], self.output.shape[2], self.output.shape[3])
+        elif self.bias is False:
+            return self.output
+        
+        return (self.output + self.bias)
     
 
     def backward(self, output_error, learning_rate):
@@ -94,11 +103,13 @@ class Conv(Layer):
             ),
             dilation=self.stride - 1,
             ### check stride calculation ###
-            stride=self.stride,
             full=True
         )
 
-        ### add bias ###
+        # update bias
+        if self.bias is not False:
+            self.bias -= learning_rate * output_error
+
 
         return input_error
 
