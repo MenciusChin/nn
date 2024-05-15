@@ -21,14 +21,24 @@ class MaxPool(Layer):
             ceil_mode=False
     ):
         
+        # if stride is None the default is kernel_size
+        stride = kernel_size if stride is None else stride
+
         # tuple all paramters
         self.kernel_size, self.stride, self.padding, self.dilation = F.paramstuple(
             kernel_size, stride, padding, dilation
         )
 
-
-
     def forward(self, input):
+        """
+        Expected input shape:
+        (1, channel, in_H, in_W)
+        Expected output shape:
+        (1, channel, out_H, out_W)
+        """
+
+        
+
         return
 
     def backward(self, output_error, learning_rate):

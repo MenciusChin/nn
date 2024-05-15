@@ -226,3 +226,75 @@ def pool(
 
     return 
 
+
+def pool1to1(
+        data,
+        kernel_size,
+        stride,
+        padding,
+        dilation,
+        method="max"
+):
+    """
+    This is the function calculating 1 unit data to 1 pooling filter,
+    for later integration into poolNto1.
+    """
+
+    f_H, f_W = kernel_size
+    in_H, in_W = data.shape[0], data.shape[1]
+    out_H = int((in_H + 2 * padding[0] - dilation[0] * (f_H - 1) - 1) / stride[0] + 1)
+    out_W = int((in_W + 2 * padding[1] - dilation[1] * (f_W - 1) - 1) / stride[1] + 1)
+
+    input = []
+    for r in range(out_H):
+        for c in range(out_W):
+            input.append((
+                data[r * stride[0]: r * stride[0] + kernel_size[0] * dilation[0],
+                     c * stride[1]: c * stride[1] + kernel_size[1] * dilation[1]],
+                method
+            ))
+    
+    with Pool(mp.cpu_count()) as p:
+        out_data = p.starmap(pool, input)
+        p.terminate()
+        p.join()
+    
+    return np.reshape(np.array(out_data), [out_H, out_W])
+
+
+def poolnto1(
+        data,
+        kernel_size,
+        stride,
+        padding,
+        dilation,
+        method="max"
+):
+    """
+    This is the function calculating pooling for 
+    N input data.
+    The input data shape is expected as: 
+    (1, channel, in_H, in_W)
+    The output shape is expected as:
+    (1, channel, out_H, out_W)
+    """
+
+    input = []
+    channels = data.shape[1]
+
+    for c in range(channels):
+        input.append((
+            data[0, c],
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            method
+        ))
+    
+    with Pool(mp.cpu_count()) as p:
+        out_data = p.starmap(pool1to1, input)
+        p.terminate()
+        p.join()
+    
+    return np.expand_dims(np.array(out_data), axis=0)
