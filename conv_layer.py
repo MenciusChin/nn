@@ -34,7 +34,7 @@ class Conv(Layer):
         self.dilation = dilation
         self.groups = groups
         
-        ### Implement bias ###
+        # introduce bias for smaller network
         self.bias = True if bias else False
 
 
@@ -78,7 +78,13 @@ class Conv(Layer):
 
         for ic in range(in_channel):
             for oc in range(out_channel):
-                filter_input.append((input[0, ic], output_error[0, oc]))
+                filter_input.append((
+                    self.input[0, ic], 
+                    output_error[0, oc],
+                    self.padding,
+                    self.dilation,
+                    self.stride
+                ))
 
         with Pool(mp.cpu_count()) as p:
             filter_error = p.starmap(self.conv1to1, filter_input)
@@ -97,19 +103,16 @@ class Conv(Layer):
         input_error = self.convntom(
             output_error, 
             self.filters,
-            padding=(
-                self.filters.shape[0] - output_error.shape[0],
-                self.filters.shape[1] - output_error.shape[1]
-            ),
+            padding=self.padding,
             dilation=self.stride - 1,
             ### check stride calculation ###
+            stride=self.stride,
             full=True
         )
 
         # update bias
         if self.bias is not False:
             self.bias -= learning_rate * output_error
-
 
         return input_error
 
@@ -118,6 +121,7 @@ class Conv(Layer):
         """
         Helper function to add padding before convolution
         """
+        
         if isinstance(padding, int):
             # case when padding is int for square kernel
             row_pad = col_pad = padding
@@ -125,11 +129,13 @@ class Conv(Layer):
             # case when padding is tuple
             row_pad, col_pad = padding
         
+        print(padding)
+        print(data.shape)
         ### Look up online to optimize ###
-        data = np.insert(data, [data.shape()[1]], [0 for p in range(row_pad)], axis=1)
-        data = np.insert(data, [0], [0 for p in range(row_pad)], axis=1)
-        data = np.insert(data, [data.shape()[0]], [0 for p in range(col_pad)], axis=0)
-        data = np.insert(data, [0], [0 for p in range(col_pad)], axis=0)
+        data = np.insert(data, [data.shape[1]], [0 for p in range(col_pad)], axis=1)
+        data = np.insert(data, [0], [0 for p in range(col_pad)], axis=1)
+        data = np.insert(data, [data.shape[0]], [0 for p in range(row_pad)], axis=0)
+        data = np.insert(data, [0], [0 for p in range(row_pad)], axis=0)
 
         return data
 
@@ -196,14 +202,22 @@ class Conv(Layer):
         
         # if full-convolution, flip the filter then switch data and filter
         # since the calculation is:
-        # full-convolution(output_error, filter)
+        # full-convolution(filter, output_error)
+        # also calculate padding
         if full:
             filter = np.flip(filter, axis=0)
             filter = np.flip(filter, axis=1)
-            data, filter = filter, data
+
+            padding = (
+                np.abs(filter.shape[0] - data.shape[0]),
+                np.abs(filter.shape[1] - data.shape[1])
+            )
 
         # pad data if needed
-        if padding > 0:
+        if isinstance(padding, int):
+            if padding > 0:
+                data = self.pad(data, padding)
+        else:
             data = self.pad(data, padding)
 
         in_H, in_W = data.shape
@@ -248,7 +262,7 @@ class Conv(Layer):
 
         # if full-convolution, flip in/out_channel
         if full:
-            filters = filters.T
+            filters = np.swapaxes(filters, 0, 1)
 
         input = []
         in_channels, out_channels = filters.shape[0], filters.shape[1]
@@ -282,9 +296,9 @@ if __name__ == "__main__":
     data = np.random.randn(1, 3, 7, 7)
     conv = Conv(3, 4, 3)
 
-    (res := conv.forward(data))
-    print(res.shape)
-    print(res)
+    fake_error = conv.forward(data)
+    fake_gradient = conv.backward(fake_error, learning_rate=.01)
+    print(fake_gradient)
     
 
 
