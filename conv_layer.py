@@ -85,16 +85,22 @@ class Conv(Layer):
         self.filters -= learning_rate * filter_error
 
         # get input gradient
+        input_error = self.convntom(
+            output_error, 
+            self.filters,
+            padding=(
+                self.filters.shape[0] - output_error.shape[0],
+                self.filters.shape[1] - output_error.shape[1]
+            ),
+            dilation=self.stride - 1,
+            ### check stride calculation ###
+            stride=self.stride,
+            full=True
+        )
 
+        ### add bias ###
 
-        
-
-            
-        
-
-
-
-
+        return input_error
 
 
     def pad(self, data, padding):
@@ -177,10 +183,13 @@ class Conv(Layer):
         Take padding, dilation, stride... into consideration.
         """
         
-        # if full-convolution, flip the current filter
+        # if full-convolution, flip the filter then switch data and filter
+        # since the calculation is:
+        # full-convolution(output_error, filter)
         if full:
             filter = np.flip(filter, axis=0)
             filter = np.flip(filter, axis=1)
+            data, filter = filter, data
 
         # pad data if needed
         if padding > 0:
@@ -228,7 +237,7 @@ class Conv(Layer):
 
         # if full-convolution, flip in/out_channel
         if full:
-            filters = np.array()
+            filters = filters.T
 
         input = []
         in_channels, out_channels = filters.shape[0], filters.shape[1]
@@ -240,7 +249,8 @@ class Conv(Layer):
                     filters[ic, oc],
                     padding,
                     dilation,
-                    stride
+                    stride,
+                    full
                 ))
         
         with Pool(mp.cpu_count()) as p:
