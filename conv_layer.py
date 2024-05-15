@@ -6,7 +6,6 @@ import numpy as np
 from layer import Layer
 import functional as F
 import multiprocessing as mp
-# This is for windows
 from multiprocessing.pool import ThreadPool as Pool
 
 ### Tasks ###

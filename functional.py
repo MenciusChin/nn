@@ -206,6 +206,16 @@ def convntom(
     return np.expand_dims(out_data, axis=0)
 
 
+def flatten(data, start_dim=1, end_dim=-1):
+    """
+    Helper function for flattening ndarray.
+    Not yet implemented the start_dim, end_dim
+    """
+    flat_dim = np.prod(data.shape[start_dim:])
+
+    return np.reshape(data, flat_dim)
+
+
 def pool(
         data,
         kernel_size,
