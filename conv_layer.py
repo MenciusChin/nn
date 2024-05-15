@@ -101,11 +101,18 @@ class Conv(Layer):
         """
         Helper function to add padding before convolution
         """
+        if isinstance(padding, int):
+            # case when padding is int for square kernel
+            row_pad = col_pad = padding
+        else:
+            # case when padding is tuple
+            row_pad, col_pad = padding
+        
         ### Look up online to optimize ###
-        data = np.insert(data, [data.shape()[1]], [0 for p in range(padding)], axis=1)
-        data = np.insert(data, [0], [0 for p in range(padding)], axis=1)
-        data = np.insert(data, [data.shape()[0]], [0 for p in range(padding)], axis=0)
-        data = np.insert(data, [0], [0 for p in range(padding)], axis=0)
+        data = np.insert(data, [data.shape()[1]], [0 for p in range(row_pad)], axis=1)
+        data = np.insert(data, [0], [0 for p in range(row_pad)], axis=1)
+        data = np.insert(data, [data.shape()[0]], [0 for p in range(col_pad)], axis=0)
+        data = np.insert(data, [0], [0 for p in range(col_pad)], axis=0)
 
         return data
 
@@ -160,7 +167,8 @@ class Conv(Layer):
             filter,
             padding,
             dilation,
-            stride
+            stride,
+            full=False
     ):
         """
         This is the function calculating 1 unit data to 1 filter,
@@ -168,6 +176,11 @@ class Conv(Layer):
         Hand-select data and filter to be process.
         Take padding, dilation, stride... into consideration.
         """
+        
+        # if full-convolution, flip the current filter
+        if full:
+            filter = np.flip(filter, axis=0)
+            filter = np.flip(filter, axis=1)
 
         # pad data if needed
         if padding > 0:
@@ -199,7 +212,8 @@ class Conv(Layer):
             filters,
             padding,
             dilation,
-            stride
+            stride,
+            full=False
     ):
         """
         This is the function calculating convolution for 
@@ -211,6 +225,10 @@ class Conv(Layer):
         The output shape is expected as:
         (1, out_channel, out_H, out_W)
         """
+
+        # if full-convolution, flip in/out_channel
+        if full:
+            filters = np.array()
 
         input = []
         in_channels, out_channels = filters.shape[0], filters.shape[1]
