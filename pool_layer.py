@@ -34,6 +34,7 @@ class Pool(Layer):
 
         self.method = method
 
+
     def forward(self, input):
         """
         Expected input shape:
@@ -43,11 +44,26 @@ class Pool(Layer):
         """
 
         self.input = input
+        pool_result, self.pool_index = F.poolnto1(
+            input, self.kernel_size, self.stride, 
+            self.padding, self.dilation, self.method
+        )
 
-        return F.poolnto1(input, self.kernel_size, self.stride, self.padding,
-                          self.dilation, self.method)
+        return pool_result
+
 
     def backward(self, output_error, learning_rate):
+        """
+        Back propagation for the Pooling layer,
+        Expected shape of output_error:
+        (1, channel, out_H, out_W)
+        Expected output shape:
+        (1, channel, in_H, in_W)
+        All non-pooled index gradient is 0
+        """
+
+
+
         return
         
 

@@ -208,20 +208,32 @@ def convntom(
 
 def pool(
         data,
+        kernel_size,
+        stride,
+        padding,
+        dilation,
+        out_r,
+        out_c,
         method="max"
 ):
     """
     Base calculation of pooling.
     Expected shape of data would be
-    (H, W), which is the portion pooling would applied to.
+    (2, H, W), which is the portion pooling would applied to.
     """
 
+    pool_area = data[out_r * stride[0]: out_r * stride[0] + kernel_size[0] * dilation[0],
+                     out_c * stride[1]: out_c * stride[1] + kernel_size[1] * dilation[1]]
+
     if method == "max":
-        return np.max(data)
+        pool_index = np.unravel_index(np.argmax(pool_area, axis=None), pool_area.shape)
+        return np.max(pool_area), (pool_index[0] + out_r * stride[0], pool_index[1] + out_c * stride[1])
     elif method == "min":
-        return np.min(data)
+        pool_index = np.unravel_index(np.argmin(pool_area, axis=None), pool_area.shape)
+        return np.min(pool_area), (pool_index[0] + out_r * stride[0], pool_index[1] + out_c * stride[1])
     elif method == "avg":
-        return np.mean(data)
+        ### implement pool index for mean pool
+        return np.mean(pool_area)
     ### add more possible ways
 
     return 
@@ -249,9 +261,14 @@ def pool1to1(
     for r in range(out_H):
         for c in range(out_W):
             input.append((
-                data[r * stride[0]: r * stride[0] + kernel_size[0] * dilation[0],
-                     c * stride[1]: c * stride[1] + kernel_size[1] * dilation[1]],
-                method
+                data,
+                kernel_size,
+                stride,
+                padding,
+                dilation,
+                r,
+                c,
+                method,
             ))
     
     with Pool(mp.cpu_count()) as p:
@@ -259,7 +276,9 @@ def pool1to1(
         p.terminate()
         p.join()
     
-    return np.reshape(np.array(out_data), [out_H, out_W])
+    pool_result, pool_index = [pool_zip for pool_zip in zip(*out_data)]
+    
+    return np.reshape(np.array(pool_result), [out_H, out_W]), (pool_index)
 
 
 def poolnto1(
@@ -297,4 +316,7 @@ def poolnto1(
         p.terminate()
         p.join()
     
-    return np.expand_dims(np.array(out_data), axis=0)
+    pool_result, pool_index = [pool_zip for pool_zip in zip(*out_data)]
+    print(pool_index)
+    
+    return np.expand_dims(np.array(pool_result), axis=0), np.array(pool_index)
