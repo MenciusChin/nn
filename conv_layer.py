@@ -104,7 +104,7 @@ class Conv(Layer):
             output_error, 
             self.filters,
             padding=self.padding,
-            dilation=self.stride - 1,
+            dilation=self.dilation,
             ### check stride calculation ###
             stride=self.stride,
             full=True
@@ -128,14 +128,10 @@ class Conv(Layer):
         else:
             # case when padding is tuple
             row_pad, col_pad = padding
-        
-        print(padding)
-        print(data.shape)
+
         ### Look up online to optimize ###
-        data = np.insert(data, [data.shape[1]], [0 for p in range(col_pad)], axis=1)
-        data = np.insert(data, [0], [0 for p in range(col_pad)], axis=1)
-        data = np.insert(data, [data.shape[0]], [0 for p in range(row_pad)], axis=0)
-        data = np.insert(data, [0], [0 for p in range(row_pad)], axis=0)
+
+        data = np.pad(data, ((row_pad, row_pad), (col_pad, col_pad)), mode="constant")
 
         return data
 
@@ -155,6 +151,7 @@ class Conv(Layer):
 
         data_r = out_r * self.stride + r * self.dilation
         data_c = out_c * self.stride + c * self.dilation
+
         return filter[r, c] * data[data_r, data_c]
 
 
@@ -209,21 +206,26 @@ class Conv(Layer):
             filter = np.flip(filter, axis=1)
 
             padding = (
-                np.abs(filter.shape[0] - data.shape[0]),
-                np.abs(filter.shape[1] - data.shape[1])
+                np.abs(filter.shape[0] - 1), np.abs(filter.shape[1] - 1)
             )
 
         # pad data if needed
         if isinstance(padding, int):
             if padding > 0:
                 data = self.pad(data, padding)
+            padding = (padding, padding)
         else:
             data = self.pad(data, padding)
 
         in_H, in_W = data.shape
         f_H, f_W = filter.shape
-        out_H = int((in_H + 2 * padding - dilation * (f_H - 1) - 1) / stride + 1)
-        out_W = int((in_W + 2 * padding - dilation * (f_W - 1) - 1) / stride + 1)
+
+        # if full-convolution, out_H and out_W would match the input shape
+        if full:
+            out_H, out_W = self.input.shape[2], self.input.shape[3]
+        else:
+            out_H = int((in_H + 2 * padding[0] - dilation * (f_H - 1) - 1) / stride + 1)
+            out_W = int((in_W + 2 * padding[1] - dilation * (f_W - 1) - 1) / stride + 1)
         input = []
 
         for r in range(0, out_H):
@@ -297,6 +299,7 @@ if __name__ == "__main__":
     conv = Conv(3, 4, 3)
 
     fake_error = conv.forward(data)
+    print(fake_error.shape)
     fake_gradient = conv.backward(fake_error, learning_rate=.01)
     print(fake_gradient)
     
