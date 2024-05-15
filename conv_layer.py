@@ -301,7 +301,7 @@ if __name__ == "__main__":
     fake_error = conv.forward(data)
     print(fake_error.shape)
     fake_gradient = conv.backward(fake_error, learning_rate=.01)
-    print(fake_gradient)
+    print(fake_gradient.shape)
     
 
 
