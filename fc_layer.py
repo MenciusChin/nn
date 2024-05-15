@@ -7,6 +7,11 @@ import numpy as np
 import functional as F
 from layer import Layer
 
+### Tasks ###
+# 1. add auto flatten when input layer dim > 1
+# 2. add backwards for flatten
+
+
 
 # inherit from base class Layer
 class FCLayer(Layer):
@@ -19,7 +24,6 @@ class FCLayer(Layer):
     # returns output for a given input
     def forward(self, input_data):
         self.input = input_data
-        
         # output = input @ weights + bias
         self.output = self.input @ self.weights + self.bias
         return self.output
