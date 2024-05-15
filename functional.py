@@ -8,6 +8,9 @@ import multiprocessing as mp
 # This is for windows
 from multiprocessing.pool import ThreadPool as Pool
 
+### Tasks ###
+# 1. Rewrite function comments
+
 
 def intuple(param):
     """
@@ -18,7 +21,7 @@ def intuple(param):
     return (param, param) if isinstance(param, int) else param
 
 
-def paramtuple(params):
+def paramstuple(params):
     """
     This reformat input all input parameters
     into tuple (int, int)
@@ -201,3 +204,25 @@ def convntom(
                                     [out_channels, in_channels, out_H, out_W]), axis=1)
     
     return np.expand_dims(out_data, axis=0)
+
+
+def pool(
+        data,
+        method="max"
+):
+    """
+    Base calculation of pooling.
+    Expected shape of data would be
+    (H, W), which is the portion pooling would applied to.
+    """
+
+    if method == "max":
+        return np.max(data)
+    elif method == "min":
+        return np.min(data)
+    elif method == "avg":
+        return np.mean(data)
+    ### add more possible ways
+
+    return 
+

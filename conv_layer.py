@@ -30,7 +30,7 @@ class Conv(Layer):
     ) -> None:
         
         # reformat paramters into tuples
-        kernel_size, self.stride, self.padding, self.dilation = F.paramtuple([
+        kernel_size, self.stride, self.padding, self.dilation = F.paramstuple([
             kernel_size, stride, padding, dilation
         ])
         

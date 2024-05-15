@@ -21,6 +21,10 @@ class MaxPool(Layer):
             ceil_mode=False
     ):
         
+        # tuple all paramters
+        self.kernel_size, self.stride, self.padding, self.dilation = F.paramstuple(
+            kernel_size, stride, padding, dilation
+        )
 
 
 
