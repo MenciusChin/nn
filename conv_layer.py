@@ -8,6 +8,13 @@ import multiprocessing as mp
 # This is for windows
 from multiprocessing.pool import ThreadPool as Pool
 
+### Tasks ###
+# 1. run full test with mnist
+# 2. stride dilation calculation when doing full-convolution
+# 3. grouping 
+# 4. check multiprocessing
+
+
 
 class Conv(Layer):
     def __init__(
