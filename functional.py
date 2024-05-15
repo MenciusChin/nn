@@ -25,14 +25,14 @@ def paramtuple(params):
     """
 
     with Pool(mp.cpu_count()) as p:
-        output_params = p.starmap(intuple, params)
+        output_params = p.map(intuple, params)
         p.terminate()
         p.join()
     
     return output_params
 
 
-def pad(self, data, padding):
+def pad(data, padding):
     """
     Helper function to add padding,
     input is expected as tuple
@@ -42,7 +42,6 @@ def pad(self, data, padding):
 
 
 def mult(
-        self,
         data, 
         filter,
         stride,
@@ -63,7 +62,6 @@ def mult(
 
 
 def convolve(
-        self, 
         data, 
         filter,
         stride,
@@ -92,7 +90,7 @@ def convolve(
             ))
     
     with Pool(mp.cpu_count()) as p:
-        output = p.starmap(self.mult, input)
+        output = p.starmap(mult, input)
         p.terminate()
         p.join()
 
@@ -100,13 +98,13 @@ def convolve(
 
 
 def conv1to1(
-        self, 
         data, 
         filter,
         stride,
         padding,
         dilation,
-        full=False
+        full=False,
+        input_shape=None
 ):
     """
     This is the function calculating 1 unit data to 1 filter,
@@ -123,19 +121,17 @@ def conv1to1(
         filter = np.flip(filter, axis=0)
         filter = np.flip(filter, axis=1)
 
-        padding = (
-            np.abs(filter.shape[0] - 1), np.abs(filter.shape[1] - 1)
-        )
+        padding = (filter.shape[0] - 1, filter.shape[1] - 1)
 
     # pad data if needed
-    data = self.pad(data, padding)
+    data = pad(data, padding)
 
     in_H, in_W = data.shape
     f_H, f_W = filter.shape
 
-    # if full-convolution, out_H and out_W would match the input shape
+    # if full-convolution, out_H and out_W would match the input_shape
     if full:
-        out_H, out_W = self.input.shape[2], self.input.shape[3]
+        out_H, out_W = input_shape[0], input_shape[1]
     else:
         out_H = int((in_H + 2 * padding[0] - dilation[0] * (f_H - 1) - 1) / stride[0] + 1)
         out_W = int((in_W + 2 * padding[1] - dilation[1] * (f_W - 1) - 1) / stride[1] + 1)
@@ -146,7 +142,7 @@ def conv1to1(
             input.append((data, filter, stride, dilation, r, c))
     
     with Pool(mp.cpu_count()) as p:
-        out_data = p.starmap(self.convolve, input)
+        out_data = p.starmap(convolve, input)
         p.terminate()
         p.join()
     
@@ -156,13 +152,13 @@ def conv1to1(
 
 
 def convntom(
-        self, 
         data, 
         filters,
         stride,
         padding,
         dilation,
-        full=False
+        full=False,
+        input_shape=None
 ):
     """
     This is the function calculating convolution for 
@@ -190,11 +186,12 @@ def convntom(
                 stride,
                 padding,
                 dilation,
-                full
+                full,
+                input_shape
             ))
     
     with Pool(mp.cpu_count()) as p:
-        out_data = p.starmap(self.conv1to1, input)
+        out_data = p.starmap(conv1to1, input)
         p.terminate()
         p.join()
     

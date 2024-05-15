@@ -30,9 +30,9 @@ class Conv(Layer):
     ) -> None:
         
         # reformat paramters into tuples
-        kernel_size, self.stride, self.padding, self.dilation = F.paramtuple(
+        kernel_size, self.stride, self.padding, self.dilation = F.paramtuple([
             kernel_size, stride, padding, dilation
-        )
+        ])
         
         # initalize filters
         self.filters = np.random.randn(in_channels, out_channels, kernel_size[0], kernel_size[1])
@@ -52,7 +52,7 @@ class Conv(Layer):
         """
 
         self.input = input
-        self.output = self.convntom(
+        self.output = F.convntom(
             input,
             self.filters,
             self.stride,
@@ -93,7 +93,7 @@ class Conv(Layer):
                 ))
 
         with Pool(mp.cpu_count()) as p:
-            filter_error = p.starmap(self.conv1to1, filter_input)
+            filter_error = p.starmap(F.conv1to1, filter_input)
             p.terminate()
             p.join()
         
@@ -106,14 +106,15 @@ class Conv(Layer):
         self.filters -= learning_rate * filter_error
 
         # get input gradient
-        input_error = self.convntom(
+        input_error = F.convntom(
             output_error, 
             self.filters,
             ### check stride calculation ###
             stride=self.stride,
             padding=self.padding,
             dilation=self.dilation,
-            full=True
+            full=True,
+            input_shape=(self.input.shape[2], self.input.shape[3])
         )
 
         # update bias
