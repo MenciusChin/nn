@@ -18,14 +18,22 @@ class FCLayer(Layer):
     # input_size = number of input neurons
     # output_size = number of output neurons
     def __init__(self, input_size, output_size, bias=True):
+        # initialize flatten to be false unless deteced
+        self.flatten = False
+
         self.weights = np.random.randn(input_size, output_size) * math.sqrt(2 / input_size)
         self.bias = np.random.rand(1, output_size) - 0.5
     
     # returns output for a given input
     def forward(self, input_data):
         self.input = input_data
-        # output = input @ weights + bias
-        self.output = self.input @ self.weights + self.bias
+        if len(self.input.shape) > 1:
+            # if input shape have more than 1 dim
+            self.flatten = True
+            self.output = F.flatten(self.input) @ self.weights + self.bias
+        else:
+            # output = input @ weights + bias
+            self.output = self.input @ self.weights + self.bias
         return self.output
 
     # computes dE/dW, dE/dB for a given output_error=dE/dY. Returns input_error=dE/dX.
@@ -38,4 +46,4 @@ class FCLayer(Layer):
         # update parameters
         self.weights -= learning_rate * weights_error
         self.bias -= learning_rate * output_error
-        return input_error
+        return np.reshape(input_error, self.input.shape) if self.flatten else input_error
