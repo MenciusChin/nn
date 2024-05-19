@@ -25,7 +25,14 @@ def softmax(x, dim=None):
     return e_x / np.sum(e_x, axis=dim, keepdims=True)
 
 
+def log_softmax(x, dim=None):
+    max_x = np.max(x, axis=dim, keepdims=True)
+    log_sum_exp = np.log(np.sum(np.exp(x - max_x), axis=dim, keepdims=True)) + max_x
+    return x - log_sum_exp
+
+
 if __name__ == "__main__":
     # test
     scores = np.array([1, 2, 3, 6])
     print(softmax(scores, dim=0))
+    print(log_softmax(scores, dim=0))
