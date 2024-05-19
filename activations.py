@@ -19,15 +19,10 @@ def tanh_prime(x):
 
 def softmax(x, dim=None):
     # Now only implemented the 1D array calculation
-    e_x = np.exp(x - np.max(x))
+    e_x = np.exp(x - np.max(x, axis=dim, keepdims=True))
 
     # Implement softmax division by dimension/axis
-    return e_x / e_x.sum() if dim is None else e_x / e_x.sum(axis=dim)
-
-
-#
-
-
+    return e_x / np.sum(e_x, axis=dim, keepdims=True)
 
 
 if __name__ == "__main__":
