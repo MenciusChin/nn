@@ -7,11 +7,6 @@ import numpy as np
 import functional as F
 from layer import Layer
 
-### Tasks ###
-# 1. add auto flatten when input layer dim > 1
-# 2. add backwards for flatten
-
-
 
 # inherit from base class Layer
 class FCLayer(Layer):
@@ -21,7 +16,7 @@ class FCLayer(Layer):
     # output_size = number of output neurons
     def __init__(self, input_size, output_size, bias=True):
         # initialize flatten to be false unless deteced
-        self.flatten = False
+        self.flatten = None
 
         self.weights = np.random.randn(input_size, output_size) * math.sqrt(2 / input_size)
         self.bias = np.random.rand(1, output_size) - 0.5
@@ -43,11 +38,12 @@ class FCLayer(Layer):
     def backward(self, output_error, learning_rate):
         """
         Expect shape of output_error:
-        (output_shape, )
+        (N, output_shape)
         """
         # dE/dX = dE/dY * W^T
+        
         input_error = np.dot(output_error, self.weights.T)
-        weights_error = np.dot(self.input.T, output_error)
+        weights_error = np.dot(self.input.T, output_error) 
         # dBias = output_error
 
         # update parameters
@@ -64,4 +60,5 @@ if __name__ == "__main__":
 
     flatten_pass = fctest.forward(data)
 
-    reshaped_gradient = fctest.backward(np.random.randn(27), learning_rate=.001)
+    reshaped_gradient = fctest.backward(np.random.randn(1, 27), learning_rate=.001)
+    print(reshaped_gradient)

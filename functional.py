@@ -213,7 +213,7 @@ def flatten(data, start_dim=0, end_dim=-1):
     """
     flat_dim = np.prod(data.shape[start_dim:])
 
-    return np.reshape(data, flat_dim)
+    return np.reshape(data, (1, flat_dim))
 
 
 def pool(
