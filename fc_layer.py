@@ -113,15 +113,13 @@ if __name__ == "__main__":
 
     # one backward pass
     output_error = mse_prime(target_np, fc_output)
-    print(output_error)
     input_error = fc.backward(output_error, learning_rate=.01)
 
     loss_torch.backward()
 
     # Extract gradients
-    print(input_error)
-    print("")
-    print(init_tensor.grad.data.numpy())
+    # due to float-point inaccuracies, use tolerance instead
+    assert np.allclose(input_error, init_tensor.grad.data.numpy(), atol=1e-2)
     
 
     
