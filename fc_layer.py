@@ -34,21 +34,22 @@ class FCLayer(Layer):
         return self.output
 
     # computes dE/dW, dE/dB for a given output_error=dE/dY. Returns input_error=dE/dX.
-    def backward(self, output_error, learning_rate):
+    def backward(self, output_error, learning_rate, train=True):
         """
         Expect shape of output_error:
         (N, output_shape)
         """
         # dE/dX = dE/dY * W^T
         
-        input_error = np.dot(output_error, self.weights.T)
-        weights_error = np.dot(self.input.T, output_error) 
+        input_error = output_error @ self.weights.T
+        weights_error = self.input.T @ output_error
         # dBias = output_error
 
-        # update parameters
-        self.weights -= learning_rate * weights_error
-        if self.bias:
-            self.bias -= learning_rate * output_error
+        # update parameters if training
+        if train:
+            self.weights -= learning_rate * weights_error
+            if self.bias:
+                self.bias -= learning_rate * output_error
 
         return input_error if self.flatten is False else np.reshape(input_error, self.flatten.shape)
     
@@ -59,18 +60,33 @@ class FCLayer(Layer):
         """
         self.weights = weights
 
+    
+    def set_bias(self, bias):
+        """
+        Set bias (mostly pretrained) for current layer
+        """
+        self.bias = bias
+
 
 if __name__ == "__main__":
     # test imports
     # utilize torch to test calculation
     import torch
     import torch.nn as nn
+    from loss import mse, mse_prime
+
+    # set seed
+    np.random.seed(39)
+    torch.manual_seed(39)
+
+    # set default dtype
+    torch.set_default_dtype(torch.float64)
 
     # initialize input data
     # shape (1, 3, 3, 3)
     init_np = np.random.randn(1, 3, 3, 3)
     # note the dtype here needs modification
-    init_tensor = torch.tensor(init_np, dtype=torch.float32)
+    init_tensor = torch.tensor(init_np, requires_grad=True)
 
     fc = FCLayer(27, 81, bias=False)
     flatten = nn.Flatten(0)
@@ -83,17 +99,29 @@ if __name__ == "__main__":
     fc_output = fc.forward(init_np)
     flatten_tensor = flatten.forward(init_tensor)
     linear_output = linear.forward(flatten_tensor)
-    # dtype causes numerical instability, so we round to 5th decimal
-    assert np.alltrue(
-        np.round(fc_output.reshape(81), 5) == np.round(linear_output.detach().numpy(), 5)
-    )
+    assert np.alltrue(fc_output.reshape(81) == linear_output.detach().numpy())
+
+    # define a simple MSE loss
+    # set y_true
+    target_np = np.random.randn(1, 81)
+    target_torch = torch.tensor(target_np[0])
+
+    # output loss
+    loss_np = mse(target_np, fc_output)
+    loss_torch = nn.functional.mse_loss(linear_output, target_torch)
+    assert (loss_np == loss_torch.data.numpy())
 
     # one backward pass
-    # initialze output loss
-    grad_np = np.random.randn(1, 81)
-    grad_tensor = torch.tensor(grad_np, dtype=torch.float32)
+    output_error = mse_prime(target_np, fc_output)
+    print(output_error)
+    input_error = fc.backward(output_error, learning_rate=.01)
 
-    input_error = fc.backward(grad_np, learning_rate=.01)
-    input_grad = torch.autograd()
+    loss_torch.backward()
+
+    # Extract gradients
+    print(input_error)
+    print("")
+    print(init_tensor.grad.data.numpy())
+    
 
     
