@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # utilize torch to test calculation
     import torch
     import torch.nn as nn
-    from loss import mse, mse_prime
+    from nllloss import NLLLoss
 
     # set seed
     np.random.seed(39)
@@ -52,13 +52,15 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
 
     # initialize input data
-    init_np = np.random.randn(1, 20)
+    init_np = np.random.randn(2, 20)
     init_tensor = torch.tensor(init_np, requires_grad=True)
 
     # one forward pass
     sm = Softmax()
     sm_np = sm.forward(init_np, dim=1)
     sm_torch = nn.functional.softmax(init_tensor, dim=1)
-    print(sm_np)
-    print(sm_torch.data.numpy())
     assert np.allclose(sm_np, sm_torch.data.numpy(), atol=1e-6)
+
+    # calculate loss 
+    # one backward pass
+    
