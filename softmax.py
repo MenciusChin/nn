@@ -38,19 +38,27 @@ class Softmax(ActivationLayer):
 
 
 if __name__ == "__main__":
-    # test
-    sm = Softmax()
-    data = np.array([[1, 2, 3],
-                     [1, 2, -1]])
-    
-    # forward pass
-    output = sm.forward(input=data, dim=1)
-    print("Softmax output:")
-    print(output)
+    # test imports
+    # utilize torch to test calculation
+    import torch
+    import torch.nn as nn
+    from loss import mse, mse_prime
 
-    # backward pass
-    output_error = np.array([[.1, .2, .7],
-                             [.3, .4, .3]])
-    input_gradient = sm.backward(output_error)
-    print("Input gradient:")
-    print(input_gradient)
+    # set seed
+    np.random.seed(39)
+    torch.manual_seed(39)
+
+    # set default dtype
+    torch.set_default_dtype(torch.float64)
+
+    # initialize input data
+    init_np = np.random.randn(1, 20)
+    init_tensor = torch.tensor(init_np, requires_grad=True)
+
+    # one forward pass
+    sm = Softmax()
+    sm_np = sm.forward(init_np, dim=1)
+    sm_torch = nn.functional.softmax(init_tensor, dim=1)
+    print(sm_np)
+    print(sm_torch.data.numpy())
+    assert np.allclose(sm_np, sm_torch.data.numpy(), atol=1e-6)
