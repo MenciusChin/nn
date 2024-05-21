@@ -1,12 +1,12 @@
 """
-Activation layer.
+Loss layer.
 """
 
 from layer import Layer
 
 
 # inherit from base class Layer
-class ActivationLayer(Layer):
+class LossLayer(Layer):
     def __init__(self, input=None):
         self.input = input
 
@@ -15,7 +15,6 @@ class ActivationLayer(Layer):
     def forward(self, input_data):
         raise NotImplementedError
 
-    # Returns input_error=dE/dX for a given output_error=dE/dY.
-    # learning_rate is not used because there is no "learnable" parameters.
+    # returns the gradient of input
     def backward(self, output_error, learning_rate):
         raise NotImplementedError
