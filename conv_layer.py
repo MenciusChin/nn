@@ -121,18 +121,71 @@ class Conv(Layer):
             self.bias -= learning_rate * output_error
 
         return input_error
+    
+
+    def set_filters(self, filters):
+        """
+        Set filters (mostly pretrained) for current layer
+        """
+        self.filters = filters
 
 
 
 if __name__ == "__main__":
-    # Testing
-    data = np.random.randn(1, 3, 7, 7)
-    conv = Conv(3, 4, 3)
+    # test imports
+    # utilize torch to test calculation
+    import torch
+    import torch.nn as nn
+    from fc_layer import FCLayer
+    from mseloss import MSELoss
 
-    fake_error = conv.forward(data)
-    print(fake_error.shape)
-    fake_gradient = conv.backward(fake_error, learning_rate=.01)
-    print(fake_gradient.shape)
+    # set seed
+    np.random.seed(39)
+    torch.manual_seed(39)
+
+    # set default dtype
+    torch.set_default_dtype(torch.float64)
+
+    # initialize input data
+    init_np = np.random.randn(1, 3, 5, 5)
+    init_tensor = torch.tensor(init_np, requires_grad=True)
+
+    conv_np = Conv(3, 5, 3)
+    conv_torch = nn.Conv2d(3, 5, 3, bias=False)
+    conv_np.set_filters(np.swapaxes(conv_torch.weight.detach().numpy(), 0, 1))
+    assert np.alltrue(conv_np.filters == np.swapaxes(conv_torch.weight.detach().numpy(), 0, 1))
+
+
+    # one forward pass
+    conved_np = conv_np.forward(init_np)
+    conved_torch = conv_torch.forward(init_tensor)
+    assert np.allclose(conved_np, conved_torch.data.numpy(), atol=1e-6)
+
+    fc = FCLayer(45, 45, bias=False)
+    linear = nn.Linear(45, 45, bias=False)
+    fc.set_weights(linear.weight.T.detach().numpy())
+    assert np.alltrue(fc.weights == linear.weight.T.detach().numpy())
+
+    target_np = np.random.randn(1, 45)
+    target_torch = torch.tensor(target_np[0])
+
+    mse = MSELoss()
+    loss_np = mse.forward(fc.forward(conved_np), target_np)
+    loss_torch = nn.functional.mse_loss(
+        linear.forward(torch.flatten(conved_torch)),
+        target_torch
+    )
+    assert np.allclose(loss_np, loss_torch.data.numpy(), atol=1e-6)
+
+    # one backward pass
+    input_error = conv_np.backward(fc.backward(mse.backward(), learning_rate=.01), learning_rate=.01)
+    loss_torch.backward()
+    
+    # due to float point inprecision, we can't assert with high precision
+    print(input_error)
+    print("")
+    print(init_tensor.grad.data.numpy())
+    assert np.allclose(input_error, init_tensor.grad.data.numpy(), atol=1e-2)
     
 
 
