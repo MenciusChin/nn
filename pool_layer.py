@@ -67,7 +67,6 @@ class Pool(Layer):
         _, channels, out_H, out_W = output_error.shape
         # init input_error for min/max pooling 
         input_error = np.zeros(self.input.shape)
-        print(self.pool_index.shape)
 
         for c in range(channels):
             for row in range(out_H):
@@ -79,11 +78,52 @@ class Pool(Layer):
 
 
 if __name__ == "__main__":
-    # testing code
-    data = np.random.randn(1, 3, 4, 4)
-    maxpool = Pool(kernel_size=(2, 2)) 
+    # test imports
+    # utilize torch to test calculation
+    import torch
+    import torch.nn as nn
+    from fc_layer import FCLayer
+    from mseloss import MSELoss
 
-    pool_result = maxpool.forward(data)
-    fake_error = pool_result
-    fake_gradient = maxpool.backward(fake_error)
-    print(fake_gradient)
+    # set seed
+    np.random.seed(39)
+    torch.manual_seed(39)
+
+    # set default dtype
+    torch.set_default_dtype(torch.float64)
+
+    # initialize input data
+    init_np = np.random.randn(1, 3, 4, 4)
+    init_tensor = torch.tensor(init_np, requires_grad=True)
+
+    mp_np = Pool(kernel_size=(2, 2))
+    mp_torch = nn.MaxPool2d(2)
+
+    # one forward pass
+    pool_np = mp_np.forward(init_np)
+    pool_torch = mp_torch.forward(init_tensor)
+    assert np.alltrue(pool_np == pool_torch.data.numpy())
+
+    fc = FCLayer(12, 12, bias=False)
+    linear = nn.Linear(12, 12, bias=False)
+    fc.set_weights(linear.weight.T.detach().numpy())
+    assert np.alltrue(fc.weights == linear.weight.T.detach().numpy())
+
+    target_np = np.random.randn(1, 12)
+    target_torch = torch.tensor(target_np[0])
+
+    mse = MSELoss()
+    loss_np = mse.forward(fc.forward(pool_np), target_np)
+    loss_torch = nn.functional.mse_loss(
+        linear.forward(torch.flatten(pool_torch)),
+        target_torch
+    )
+    assert (loss_np == loss_torch)
+
+    # one backward pass
+    input_error = mp_np.backward(fc.backward(mse.backward(), learning_rate=.01))
+    loss_torch.backward()
+    
+    # due to float point inprecision, we can't assert with high precision
+    # Note: the position of the gradient is correct, but the value differs since 1st decimal
+    assert np.allclose(input_error, init_tensor.grad.data.numpy(), atol=.1)
