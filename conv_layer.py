@@ -186,11 +186,3 @@ if __name__ == "__main__":
     print("")
     print(init_tensor.grad.data.numpy())
     assert np.allclose(input_error, init_tensor.grad.data.numpy(), atol=1e-2)
-    
-
-
-
-
-
-
-        

@@ -85,7 +85,6 @@ if __name__ == "__main__":
     # initialize input data
     # shape (1, 3, 3, 3)
     init_np = np.random.randn(1, 3, 3, 3)
-    # note the dtype here needs modification
     init_tensor = torch.tensor(init_np, requires_grad=True)
 
     fc = FCLayer(27, 81, bias=False)
@@ -120,6 +119,3 @@ if __name__ == "__main__":
     # Extract gradients
     # due to float-point inaccuracies, use tolerance instead
     assert np.allclose(input_error, init_tensor.grad.data.numpy(), atol=1e-2)
-    
-
-    
