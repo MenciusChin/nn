@@ -13,7 +13,7 @@ class LogSoftmax(ActivationLayer):
         super().__init__()
 
     
-    def forward(self, input, dim):
+    def forward(self, input, dim=None):
         """
         Expected input shape:
         (N, num_classes)

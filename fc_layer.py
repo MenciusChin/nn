@@ -30,7 +30,7 @@ class FCLayer(Layer):
         else:
             # output = input @ weights + bias
             self.input = input_data
-        self.output = self.input @ self.weights + self.bias if self.bias else self.input @ self.weights
+        self.output = self.input @ self.weights if self.bias is False else self.input @ self.weights + self.bias
         return self.output
 
     # computes dE/dW, dE/dB for a given output_error=dE/dY. Returns input_error=dE/dX.

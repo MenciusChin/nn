@@ -4,19 +4,17 @@ Class for Network object
 
 
 class Network:
-    def __init__(self):
-        self.layers = []
-        self.loss = None
-        self.loss_prime = None
+    def __init__(self, layers=None, loss=None):
+        self.layers = [layers]
+        self.loss = loss
 
     # add layer to network
     def add(self, layer):
         self.layers.append(layer)
 
     # set loss to use
-    def use(self, loss, loss_prime):
+    def use(self, loss):
         self.loss = loss
-        self.loss_prime = loss_prime
 
     # predict output for given input
     def predict(self, input_data):
