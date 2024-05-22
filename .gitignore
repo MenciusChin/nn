@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.ipynb
 data/
+notebooks/
 
 # C extensions
 *.so
