@@ -68,7 +68,7 @@ class Conv(Layer):
         return (self.output + self.bias)
     
 
-    def backward(self, output_error, learning_rate):
+    def backward(self, output_error, learning_rate, train=True):
         """
         Back propagation for the Convolution layer,
         for every element of filter F, output O:
@@ -76,33 +76,6 @@ class Conv(Layer):
         The expected shape of output_error would be:
         (1, out_channel, out_H, out_W) same as the shape if out_data
         """
-        
-        # get filter gradient
-        filter_input = []
-        in_channel, out_channel = self.filters.shape[0], self.filters.shape[1]
-
-        for ic in range(in_channel):
-            for oc in range(out_channel):
-                filter_input.append((
-                    self.input[0, ic], 
-                    output_error[0, oc],
-                    self.stride,
-                    self.padding,
-                    self.dilation
-                ))
-
-        with Pool(mp.cpu_count()) as p:
-            filter_error = p.starmap(F.conv1to1, filter_input)
-            p.terminate()
-            p.join()
-        
-        filter_error = np.reshape(
-            np.array(filter_error),
-            [in_channel, out_channel, self.filters.shape[2], self.filters.shape[3]]
-        )
-
-        # update filter gradient
-        self.filters -= learning_rate * filter_error
 
         # get input gradient
         input_error = F.convntom(
@@ -116,9 +89,38 @@ class Conv(Layer):
             input_shape=(self.input.shape[2], self.input.shape[3])
         )
 
-        # update bias
-        if self.bias is not False:
-            self.bias -= learning_rate * output_error
+        if train:
+            # only if train, update filter and bias
+            # get filter gradient
+            filter_input = []
+            in_channel, out_channel = self.filters.shape[0], self.filters.shape[1]
+
+            for ic in range(in_channel):
+                for oc in range(out_channel):
+                    filter_input.append((
+                        self.input[0, ic], 
+                        output_error[0, oc],
+                        self.stride,
+                        self.padding,
+                        self.dilation
+                    ))
+
+            with Pool(mp.cpu_count()) as p:
+                filter_error = p.starmap(F.conv1to1, filter_input)
+                p.terminate()
+                p.join()
+            
+            filter_error = np.reshape(
+                np.array(filter_error),
+                [in_channel, out_channel, self.filters.shape[2], self.filters.shape[3]]
+            )
+
+            # update filter gradient
+            self.filters -= learning_rate * filter_error
+
+            # update bias
+            if self.bias is not False:
+                self.bias -= learning_rate * output_error
 
         return input_error
     
@@ -147,11 +149,11 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.float64)
 
     # initialize input data
-    init_np = np.random.randn(1, 3, 5, 5)
+    init_np = np.random.randn(1, 1, 5, 5)
     init_tensor = torch.tensor(init_np, requires_grad=True)
 
-    conv_np = Conv(3, 5, 3)
-    conv_torch = nn.Conv2d(3, 5, 3, bias=False)
+    conv_np = Conv(1, 3, 3)
+    conv_torch = nn.Conv2d(1, 3, 3, bias=False)
     conv_np.set_filters(np.swapaxes(conv_torch.weight.detach().numpy(), 0, 1))
     assert np.alltrue(conv_np.filters == np.swapaxes(conv_torch.weight.detach().numpy(), 0, 1))
 
@@ -161,12 +163,12 @@ if __name__ == "__main__":
     conved_torch = conv_torch.forward(init_tensor)
     assert np.allclose(conved_np, conved_torch.data.numpy(), atol=1e-6)
 
-    fc = FCLayer(45, 45, bias=False)
-    linear = nn.Linear(45, 45, bias=False)
+    fc = FCLayer(27, 27, bias=False)
+    linear = nn.Linear(27, 27, bias=False)
     fc.set_weights(linear.weight.T.detach().numpy())
     assert np.alltrue(fc.weights == linear.weight.T.detach().numpy())
 
-    target_np = np.random.randn(1, 45)
+    target_np = np.random.randn(1, 27)
     target_torch = torch.tensor(target_np[0])
 
     mse = MSELoss()
@@ -186,3 +188,6 @@ if __name__ == "__main__":
     print("")
     print(init_tensor.grad.data.numpy())
     assert np.allclose(input_error, init_tensor.grad.data.numpy(), atol=1e-2)
+
+    # also check conv layer gradient update
+    assert np.allclose(conv_np.filters, np.swapaxes(conv_torch.weight.data.numpy(), 0, 1), atol=1e-6)
