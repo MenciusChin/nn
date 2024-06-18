@@ -1,5 +1,6 @@
 """
 Image to column functions
+Base code: https://github.com/huyouare/CS231n/blob/master/assignment2/cs231n/im2col.py
 """
 
 import numpy as np
@@ -50,12 +51,57 @@ def get_im2col_indices(
     k = np.repeat(np.arange(C), f_H * f_W).reshape(-1, 1)
 
     return (k, i, j)
+
+
+def im2col_indices(
+        input,
+        filter_shape,
+        stride=(1, 1),
+        padding=(0, 0),
+        dilation=(1, 1)
+):
+    """ An implementation of im2col based on some fancy indexing """
+    # Zero-pad the input
+    p0, p1 = padding
+    x_padded = np.pad(input, ((0, 0), (0, 0), (p0, p1), (p0, p1)), mode='constant')
+
+    f_H, f_W = filter_shape
+    k, i, j = get_im2col_indices(
+        input.shape, 
+        filter_shape, 
+        stride,
+        padding,
+        dilation
+    )
+
+    cols = x_padded[:, k, i, j]
+    C = input.shape[1]
+    cols = cols.transpose(1, 2, 0).reshape(f_H * f_W * C, -1)
+    return cols
+
+
+"""
+Not Implemented
+"""
+def col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=1,
+                   stride=1):
+    """ An implementation of col2im based on fancy indexing and np.add.at """
+    N, C, H, W = x_shape
+    H_padded, W_padded = H + 2 * padding, W + 2 * padding
+    x_padded = np.zeros((N, C, H_padded, W_padded), dtype=cols.dtype)
+    k, i, j = get_im2col_indices(x_shape, field_height, field_width, padding,
+                                stride)
+    cols_reshaped = cols.reshape(C * field_height * field_width, -1, N)
+    cols_reshaped = cols_reshaped.transpose(2, 0, 1)
+    np.add.at(x_padded, (slice(None), k, i, j), cols_reshaped)
+    if padding == 0:
+        return x_padded
+    return x_padded[:, :, padding:-padding, padding:-padding]
     
 
 
 
 if __name__ == "__main__":
-    print(get_im2col_indices(
-        (1, 3, 5, 5),
-        (3, 3)
-    ))
+    img = np.random.randn(1, 3, 5, 5)
+    cols = im2col_indices(img, (3, 3))
+    print(cols)
