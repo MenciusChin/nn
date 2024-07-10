@@ -6,6 +6,7 @@ import numpy as np
 from layer import Layer
 import functional as F
 import multiprocessing as mp
+from im2col import im2col_indices, col2im_indices
 from multiprocessing.pool import ThreadPool as Pool
 
 ### Tasks ###
@@ -51,13 +52,40 @@ class Conv(Layer):
         """
 
         self.input = input
-        self.output = F.convntom(
-            input,
-            self.filters,
-            self.stride,
-            self.padding,
-            self.dilation
+
+        # calculate dimensions
+        _, _, in_H, in_W = input.shape
+        in_C, out_C, f_H, f_W = self.filters.shape
+        out_H = int((in_H + 2 * self.padding[0] - self.dilation[0] * (f_H - 1) - 1) / self.stride[0] + 1)
+        out_W = int((in_W + 2 * self.padding[1] - self.dilation[1] * (f_W - 1) - 1) / self.stride[1] + 1)
+        
+        # use im2col, convert our original input (N, in_C, in_H, in_W)
+        # into column input (in_C * f_H * f_W, filter_positions)
+        X_col = im2col_indices(
+            input=input,
+            filter_shape=(f_H, f_W),
+            stride=self.stride,
+            padding=self.padding,
+            dilation=self.dilation
         )
+
+        # also convert our original filters (in_C, out_C, f_H, f_W) into
+        # row filters (in_C * f_H * f_W, out_C)
+        W_row = self.filters.transpose(0, 2, 3, 1).reshape(in_C * f_H * f_W, out_C)
+
+        # now after transformation, our output would be X_col.T @ W_row
+        # with size (filter_positions, out_C), which will be reshape into
+        # (N, out_C, out_H, out_W)
+        self.output = (X_col.T @ W_row).transpose(1, 0).reshape(1, out_C, out_H, out_W)
+
+
+        # self.output = F.convntom(
+        #     input,
+        #     self.filters,
+        #     self.stride,
+        #     self.padding,
+        #     self.dilation
+        # )
 
         # initialize bias at the very first forward pass 
         if self.bias is True:

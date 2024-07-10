@@ -104,4 +104,4 @@ def col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=1,
 if __name__ == "__main__":
     img = np.random.randn(1, 3, 5, 5)
     cols = im2col_indices(img, (3, 3))
-    print(cols)
+    print(cols.shape)
