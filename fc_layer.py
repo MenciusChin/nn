@@ -19,7 +19,7 @@ class FCLayer(Layer):
         self.flatten = None
 
         self.weights = np.random.randn(input_size, output_size) * np.sqrt(2 / input_size)
-        self.bias = np.random.rand(1, output_size) - 0.5 if bias else None
+        self.bias = np.random.rand(1, output_size) - 0.5 if bias else False
     
     # returns output for a given input
     def forward(self, input_data):
