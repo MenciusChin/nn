@@ -10,10 +10,7 @@ from im2col import im2col_indices, col2im_indices
 from multiprocessing.pool import ThreadPool as Pool
 
 ### Tasks ###
-# 1. run full test with mnist
-# 2. stride dilation calculation when doing full-convolution
-# 3. grouping 
-# 4. check multiprocessing
+# 1. implement im2col backward
 
 
 class Conv(Layer):
@@ -77,15 +74,6 @@ class Conv(Layer):
         # with size (filter_positions, out_C), which will be reshape into
         # (N, out_C, out_H, out_W)
         self.output = (X_col.T @ W_row).transpose(1, 0).reshape(1, out_C, out_H, out_W)
-
-
-        # self.output = F.convntom(
-        #     input,
-        #     self.filters,
-        #     self.stride,
-        #     self.padding,
-        #     self.dilation
-        # )
 
         # initialize bias at the very first forward pass 
         if self.bias is True:
