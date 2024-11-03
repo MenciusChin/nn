@@ -173,6 +173,19 @@ elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     device = "mps"
 print(f"using device: {device}")
 
+# get a data batch
+import tiktoken
+enc = tiktoken.get_encoding('gpt2')
+with open('input.txt', 'r') as f:
+    text = f.read()
+text = text[:1000] # first 1,000 tokens
+tokens = enc.encode(text)
+B, T = 4, 32 # set B, T dimension
+buf = torch.tensor(tokens[:B*T + 1]) # buffer
+x = buf[:-1].view(B, T)
+y = buf[1:].view(B, T)
+
+
 num_return_sequence = 5
 max_length = 30
 
