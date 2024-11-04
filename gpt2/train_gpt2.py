@@ -207,20 +207,13 @@ if torch.cuda.is_available():
     device = "cuda"
 elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     device = "mps"
-torch.set_default_device(device)
+# this is commented since we don't want to waste too much
+# memory on the gpu
+#torch.set_default_device(device)
 print(f"using device: {device}")
 
 # get a data batch
-import tiktoken
-enc = tiktoken.get_encoding('gpt2')
-with open('input.txt', 'r') as f:
-    text = f.read()
-text = text[:1000] # first 1,000 tokens
-tokens = enc.encode(text)
-B, T = 4, 32 # set B, T dimension
-buf = torch.tensor(tokens[:B*T + 1], device=device) # buffer
-x = buf[:-1].view(B, T)
-y = buf[1:].view(B, T)
+train_loader = DataLoaderLite(B=4, T=32)
 
 # get logits
 model = GPT(GPTConfig())
@@ -230,6 +223,8 @@ model.to(device)
 # optimization
 optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
 for i in range(50):
+    x, y = train_loader.next_batch()
+    x, y = x.to(device), y.to(device)
     optimizer.zero_grad()
     logits, loss = model(x, y)
     loss.backward()
