@@ -71,8 +71,8 @@ class Block(nn.Module):
     
     def forward(self, x):
         # pre-normalization
-        x = x + self.attn(self.ln_1(x)) # reduce
-        x = x + self.mlp(self.ln_2(x)) # map
+        x = x + self.attn(self.ln_1(x))
+        x = x + self.mlp(self.ln_2(x))
         return x
 
 
@@ -237,7 +237,11 @@ torch.manual_seed(9030)
 if torch.cuda.is_available(): torch.cuda.manual_seed(9030)
 
 # get a data batch
-train_loader = DataLoaderLite(B=4, T=32)
+# decrease batch size if gpu memory is not enough
+train_loader = DataLoaderLite(B=4, T=1024)
+
+# check gpu configuration
+torch.set_float32_matmul_precision('high')
 
 # get logits
 model = GPT(GPTConfig())
@@ -258,7 +262,8 @@ for i in range(50):
     torch.cuda.synchronize()
     t1 = time.time()
     dt = (t1 - t0) * 1000 # time difference in miliseconds
-    print(f"step {i}, loss: {loss.item()}, dt: {dt: .2f}ms")
+    tokens_per_sec = (train_loader.B * train_loader.T) / (t1 - t0)
+    print(f"step {i}, loss: {loss.item()}, dt: {dt: .2f}ms, tok/sec: {tokens_per_sec:.2f}")
 
 import sys; sys.exit(0)
 
