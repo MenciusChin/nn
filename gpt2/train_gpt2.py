@@ -44,7 +44,7 @@ class CausalSelfAttention(nn.Module):
             # manual implementation of attention
             # this materializes the large (T,T) matrix for all the queries and keys
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-            att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+            att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
             y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
         y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head output side by side
@@ -247,19 +247,19 @@ if torch.cuda.is_available(): torch.cuda.manual_seed(9030)
 # get a data batch
 # decrease batch size if gpu memory is not enough
 # B=16, T=1024 is gpt-small
-train_loader = DataLoaderLite(B=4, T=32)
+train_loader = DataLoaderLite(B=4, T=512)
 
 # check gpu configuration
 torch.set_float32_matmul_precision('high')
 
 # get logits
-model = GPT(GPTConfig())
+model = GPT(GPTConfig(vocab_size=50304)) # override vocab_size with nicer number
 model.to(device)
 model = torch.compile(model)
 # logits, loss = model(x, y)
 
 # optimization
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-8)
 import time
 for i in range(50):
     t0 = time.time()
@@ -270,7 +270,7 @@ for i in range(50):
         logits, loss = model(x, y)
     loss.backward()
     optimizer.step()
-    torch.cuda.synchronize()
+    torch.cuda.synchronize() # wait for the GPU to finish work
     t1 = time.time()
     dt = (t1 - t0) * 1000 # time difference in miliseconds
     tokens_per_sec = (train_loader.B * train_loader.T) / (t1 - t0)
