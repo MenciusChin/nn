@@ -7,6 +7,9 @@ from torch.nn import functional as F
 
 # ------------------------------------------------------------------------------
 
+# using a global to toggle flash-attention
+FLASH = 0
+
 class CausalSelfAttention(nn.Module):
 
     def __init__(self, config):
@@ -34,11 +37,16 @@ class CausalSelfAttention(nn.Module):
         k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        # attention (materializes the large (T, T) matrix for all the queries and keys)
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1))) # (B, nh, T, T)
-        att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float('-inf')) # mask future tokens
-        att = F.softmax(att, dim=-1)
-        y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+        if FLASH:
+            # flashattention
+            y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+        else:
+            # manual implementation of attention
+            # this materializes the large (T,T) matrix for all the queries and keys
+            att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+            att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+            att = F.softmax(att, dim=-1)
+            y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
         y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head output side by side
         # output projection
         y = self.c_proj(y)
@@ -238,7 +246,8 @@ if torch.cuda.is_available(): torch.cuda.manual_seed(9030)
 
 # get a data batch
 # decrease batch size if gpu memory is not enough
-train_loader = DataLoaderLite(B=4, T=1024)
+# B=16, T=1024 is gpt-small
+train_loader = DataLoaderLite(B=4, T=32)
 
 # check gpu configuration
 torch.set_float32_matmul_precision('high')
@@ -246,6 +255,7 @@ torch.set_float32_matmul_precision('high')
 # get logits
 model = GPT(GPTConfig())
 model.to(device)
+model = torch.compile(model)
 # logits, loss = model(x, y)
 
 # optimization
@@ -256,7 +266,8 @@ for i in range(50):
     x, y = train_loader.next_batch()
     x, y = x.to(device), y.to(device)
     optimizer.zero_grad()
-    logits, loss = model(x, y)
+    with torch.autocast(device_type=device, dtype=torch.bfloat16):
+        logits, loss = model(x, y)
     loss.backward()
     optimizer.step()
     torch.cuda.synchronize()
