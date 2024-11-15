@@ -268,10 +268,18 @@ print(f"using device: {device}")
 torch.manual_seed(9030)
 if torch.cuda.is_available(): torch.cuda.manual_seed(9030)
 
+total_batch_size = 524288 # 2**19, ~0.5M, in number of tokens
+B = 16 # micro batch size
+T = 1024 # sequence length
+assert total_batch_size % (B * T) == 0, "make sure total_batch_size is divisible by B * T"
+grad_accum_steps = total_batch_size // (B * T)
+print(f"total desired batch size: {total_batch_size}")
+print(f"=> calculated gradient accumulation steps: {grad_accum_steps}")
+
 # get a data batch
 # decrease batch size if gpu memory is not enough
 # B=16, T=1024 is gpt-small
-train_loader = DataLoaderLite(B=4, T=512)
+train_loader = DataLoaderLite(B=B, T=T)
 
 # check gpu configuration
 torch.set_float32_matmul_precision('high')
